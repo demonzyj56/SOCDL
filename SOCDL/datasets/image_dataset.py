@@ -4,8 +4,8 @@ import os
 import numpy as np
 import scipy.io as sio
 from torch.utils.data import Dataset
-from .utils import imread
 from .loader import BlobLoader, DatasetLoader
+from ..utils import imread
 
 logger = logging.getLogger(__name__)
 

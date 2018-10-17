@@ -2,8 +2,8 @@
 import os
 import numpy as np
 import torch.utils.data as data
-from .utils import imread
 from .loader import DatasetLoader
+from ..utils import imread
 
 
 class VOC07Images(data.Dataset):

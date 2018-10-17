@@ -3,8 +3,8 @@ import os
 import numpy as np
 import scipy.io as sio
 import torch.utils.data as data
-from .utils import imread
 from .loader import DatasetLoader
+from ..utils import imread
 
 
 class VGG17Flowers(data.Dataset):
