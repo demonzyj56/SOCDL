@@ -15,7 +15,10 @@ from sporco import common, cdict
 from sporco.dictlrn import dictlrn
 from sporco.admm import cbpdn
 from sporco.fista import fista
-import sporco_cuda.cbpdn as cucbpdn
+try:
+    import sporco_cuda.cbpdn as cucbpdn
+except ImportError:
+    cucbpdn = None
 
 from ..utils import Pcn, einsum
 

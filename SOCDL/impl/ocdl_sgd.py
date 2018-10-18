@@ -33,7 +33,10 @@ import sporco.linalg as sl
 import sporco.cnvrep as cr
 from sporco.admm import cbpdn, parcbpdn
 from sporco.dictlrn import dictlrn
-from sporco_cuda import cbpdn as cucbpdn
+try:
+    from sporco_cuda import cbpdn as cucbpdn
+except ImportError:
+    cucbpdn = None
 
 
 __author__ = """\n""".join(['Cristina Garcia-Cardona <cgarciac@lanl.gov>',

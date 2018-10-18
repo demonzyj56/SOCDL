@@ -62,10 +62,10 @@ class EpochLoader(object):
             index = np.asarray(index)
         else:
             index = np.asarray(np.random.randint(len(self)))
-        return self.sample_from_index(index).squeeze()
+        return self.sample_from_index(index)
 
     def __getitem__(self, index):
-        return self.sample_from_index(np.array(index)).squeeze()
+        return self.sample_from_index(np.array(index))
 
     def __iter__(self):
         self.sampler = EpochSampler(len(self), self.epochs, self.batch_size)

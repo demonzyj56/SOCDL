@@ -11,6 +11,7 @@ import pyfftw  # pylint: disable=unused-import
 import numpy as np
 import torch
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
 from SOCDL.builder import get_online_solvers, get_loader
 from SOCDL.utils import setup_logging
@@ -47,7 +48,7 @@ def train_models(defs):
 
     # initialize loader
     loader = get_loader(train=True)
-    init_sample = loader.random_samples()
+    init_sample = loader.random_samples()[1]
 
     # initialize solvers
     solvers = get_online_solvers(defs, D0, init_sample)
