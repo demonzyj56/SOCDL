@@ -38,6 +38,8 @@ class VOC07Loader(DatasetLoader):
     """Pascal VOC07 image loader."""
 
     def __init__(self, root, epochs=None, batch_size=None, train=True,
-                 dtype=np.float32, scaled=True, gray=False, dsize=(256, 256)):
+                 dtype=np.float32, scaled=True, gray=False, dsize=(256, 256),
+                 transform=None):
         dataset = VOC07Images(root, train, dtype, scaled, gray, dsize)
-        super(VOC07Loader, self).__init__(dataset, epochs, batch_size)
+        super(VOC07Loader, self).__init__(dataset, epochs, batch_size,
+                                          transform)

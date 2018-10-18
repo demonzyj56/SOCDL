@@ -10,7 +10,7 @@ import cv2
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(name, filename=None):
+def setup_logging(filename=None):
     """Utility for every script to call on top-level.
     If filename is not None, then also log to the filename."""
     FORMAT = '[%(levelname)s %(asctime)s] %(filename)s:%(lineno)4d: %(message)s'
@@ -25,7 +25,6 @@ def setup_logging(name, filename=None):
         datefmt=DATEFMT,
         handlers=handlers
     )
-    return logging.getLogger(name)
 
 
 def Pcn(D, zm=True, gt=True):

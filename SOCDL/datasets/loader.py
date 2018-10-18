@@ -72,14 +72,12 @@ class EpochLoader(object):
         return self
 
     def __next__(self):
+        """The inherieted class is responsible for applying the transforms."""
         try:
             index = next(self.sampler)
         except Exception as e:
             raise e
-        samples = self.sample_from_index(index)
-        if self.transform is not None:
-            samples = self.transform(samples)
-        return samples
+        return self.sample_from_index(index)
 
 
 class DatasetLoader(EpochLoader):
@@ -95,7 +93,12 @@ class DatasetLoader(EpochLoader):
     def sample_from_index(self, index):
         """Assume each sample in the dataset is an image with HWC layout."""
         sampled = [self.dataset[i] for i in index]
-        return np.stack(sampled, axis=-1)
+        sampled = np.stack(sampled, axis=-1)
+        if self.transform is not None:
+            sampled = self.transform(sampled)
+        else:
+            sampled = [sampled]
+        return sampled
 
 
 class BlobLoader(EpochLoader):
@@ -106,10 +109,17 @@ class BlobLoader(EpochLoader):
 
     def __init__(self, blob, epochs=None, batch_size=None, transform=None):
         super(BlobLoader, self).__init__(epochs, batch_size, transform)
-        self.blob = blob
+        if self.transform is not None:
+            transformed = self.transform(blob)
+            if isinstance(transformed, (list, tuple)):
+                self.blobs = transformed
+            else:
+                self.blobs = [transformed]
+        else:
+            self.blobs = [blob]
 
     def __len__(self):
-        return self.blob.shape[-1]
+        return self.blobs[0].shape[-1]
 
     def sample_from_index(self, index):
-        return self.blob[..., index]
+        return [b[..., index] for b in self.blobs]
