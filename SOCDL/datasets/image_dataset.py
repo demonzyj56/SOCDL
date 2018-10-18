@@ -84,7 +84,8 @@ class FruitLoader(BlobLoader):
     _name = 'fruit'
 
     def __init__(self, epochs=None, batch_size=None, train=True,
-                 dtype=np.float32, scaled=True, gray=True, use_processed=False):
+                 dtype=np.float32, scaled=True, gray=True, use_processed=False,
+                 transform=None):
         """Load fruit or city dataset.  If use_processed is True, then use
         the processed data from `OCSC`."""
         if use_processed:
@@ -98,7 +99,7 @@ class FruitLoader(BlobLoader):
             name = self._name if train else 'singles'
             blob = create_image_blob(name, dtype=dtype, scaled=scaled,
                                      gray=gray)
-        super(FruitLoader, self).__init__(blob, epochs, batch_size)
+        super(FruitLoader, self).__init__(blob, epochs, batch_size, transform)
 
 
 class CityLoader(FruitLoader):
@@ -110,6 +111,8 @@ class ImageLoader(DatasetLoader):
     """Loader for a series of image names."""
 
     def __init__(self, names, epochs=None, batch_size=None,
-                 dtype=np.float32, scaled=True, gray=False, dsize=None):
+                 dtype=np.float32, scaled=True, gray=False, dsize=None,
+                 transform=None):
         dataset = ImageDataset(names, dtype, scaled, gray, dsize)
-        super(ImageLoader, self).__init__(dataset, epochs, batch_size)
+        super(ImageLoader, self).__init__(dataset, epochs, batch_size,
+                                          transform)

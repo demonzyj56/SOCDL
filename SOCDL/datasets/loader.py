@@ -43,9 +43,10 @@ class EpochLoader(object):
     batch_size.  If the samples are exhausted, then loop to the front, with
     indices shuffled."""
 
-    def __init__(self, epochs=None, batch_size=None):
+    def __init__(self, epochs=None, batch_size=None, transform=None):
         self.epochs = epochs
         self.batch_size = batch_size
+        self.transform = transform
 
     def __len__(self):
         """To be implemented."""
@@ -54,6 +55,14 @@ class EpochLoader(object):
     def sample_from_index(self, index):
         """To be implemented."""
         raise NotImplementedError
+
+    def random_samples(self, index=None):
+        """Randomly sample data from the dataset."""
+        if index is not None:
+            index = np.asarray(index)
+        else:
+            index = np.asarray(np.random.randint(len(self)))
+        return self.sample_from_index(index).squeeze()
 
     def __getitem__(self, index):
         return self.sample_from_index(np.array(index)).squeeze()
@@ -67,14 +76,17 @@ class EpochLoader(object):
             index = next(self.sampler)
         except Exception as e:
             raise e
-        return self.sample_from_index(index)
+        samples = self.sample_from_index(index)
+        if self.transform is not None:
+            samples = self.transform(samples)
+        return samples
 
 
 class DatasetLoader(EpochLoader):
     """Read data from dataset."""
 
-    def __init__(self, dataset, epochs=None, batch_size=None):
-        super(DatasetLoader, self).__init__(epochs, batch_size)
+    def __init__(self, dataset, epochs=None, batch_size=None, transform=None):
+        super(DatasetLoader, self).__init__(epochs, batch_size, transform)
         self.dataset = dataset
 
     def __len__(self):
@@ -92,8 +104,8 @@ class BlobLoader(EpochLoader):
     layout.
     """
 
-    def __init__(self, blob, epochs=None, batch_size=None):
-        super(BlobLoader, self).__init__(epochs, batch_size)
+    def __init__(self, blob, epochs=None, batch_size=None, transform=None):
+        super(BlobLoader, self).__init__(epochs, batch_size, transform)
         self.blob = blob
 
     def __len__(self):

@@ -9,7 +9,7 @@ class CIFAR10Loader(BlobLoader):
     _cifar_func = tcifar.CIFAR10
 
     def __init__(self, root, epochs=None, batch_size=None, train=True,
-                 dtype=np.float32, scaled=True, gray=False):
+                 dtype=np.float32, scaled=True, gray=False, transform=None):
         cifar_data = self._cifar_func(root, train=train, download=True)
         if train:
             blob = cifar_data.train_data
@@ -22,9 +22,9 @@ class CIFAR10Loader(BlobLoader):
             blob = blob[:, :, 0, :] * 0.2989 + blob[:, :, 1, :] * 0.5870 + \
                 blob[:, :, 2, :] * 0.1140
 
-        super(CIFAR10Loader, self).__init__(blob, epochs, batch_size)
+        super(CIFAR10Loader, self).__init__(blob, epochs, batch_size, transform)
 
 
-class CIFAR100Loader(BlobLoader):
+class CIFAR100Loader(CIFAR10Loader):
     """Load CIFAR100 images.  The labels are not loaded."""
     _cifar_func = tcifar.CIFAR100

@@ -68,15 +68,19 @@ class VGG17FlowersLoader(DatasetLoader):
     """VGG17 flowers image loader."""
 
     def __init__(self, root, epochs=None, batch_size=None, train=True,
-                 dtype=np.float32, scaled=True, gray=False, dsize=(256, 256)):
+                 dtype=np.float32, scaled=True, gray=False, dsize=(256, 256),
+                 transform=None):
         dataset = VGG17Flowers(root, train, dtype, scaled, gray, dsize)
-        super(VGG17FlowersLoader, self).__init__(dataset, epochs, batch_size)
+        super(VGG17FlowersLoader, self).__init__(dataset, epochs, batch_size,
+                                                 transform)
 
 
 class VGG102FlowersLoader(DatasetLoader):
     """VGG102 flowers image loader."""
 
     def __init__(self, root, epochs=None, batch_size=None, train=True,
-                 dtype=np.float32, scaled=True, gray=False, dsize=(256, 256)):
+                 dtype=np.float32, scaled=True, gray=False, dsize=(256, 256),
+                 transform=None):
         dataset = VGG102Flowers(root, train, dtype, scaled, gray, dsize)
-        super(VGG102FlowersLoader, self).__init__(dataset, epochs, batch_size)
+        super(VGG102FlowersLoader, self).__init__(dataset, epochs, batch_size,
+                                                  transform)
