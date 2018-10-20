@@ -4,13 +4,16 @@ import argparse
 import datetime
 import logging
 import os
+import pickle
 import pprint
 import sys
 import yaml
 import pyfftw  # pylint: disable=unused-import
 import numpy as np
 import torch
+import sporco.util as su
 
+# add SOCDL working directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
 from SOCDL.builder import get_online_solvers, get_loader
@@ -26,6 +29,8 @@ def parse_args():
                         help='cfg file to parse options from')
     parser.add_argument('--def', dest='def_file', default=None, type=str,
                         help='cfg file that defines configs for solvers')
+    parser.add_argument('--run_test', action='store_true',
+                        help='Also run test immediately after training')
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='Command line arguments')
     if len(sys.argv) == 1:
@@ -58,11 +63,50 @@ def train_models(defs):
             s.solve(sh)
             # For online solvers we explicitly save the dicts here.
             if cfg.SNAPSHOT:
-                path = os.path.join(cfg.OUTPUT_PATH, k,
-                                    '{}.{}.npy'.format(cfg.DATASET.NAME, e))
+                path = os.path.join(cfg.OUTPUT_PATH, k, '{}.npy'.format(e))
                 np.save(path, s.getdict().squeeze())
 
     return solvers
+
+
+def visualize_dicts(solvers):
+    """Show visualizations of learned dictionaries."""
+    try:
+        import matplotlib.pyplot as plt
+    except:
+        logger.warning('plt is not available, thus not visualizing dicts')
+        return
+    fig, ax = plt.subplots(1, len(solvers))
+    for i, (k, v) in enumerate(solvers.items()):
+        tiled = su.tiledict(v.getdict().squeeze())
+        if tiled.ndim == 2:
+            ax[i].imshow(tiled, cmap='gray')
+        else:
+            ax[i].imshow(tiled)
+        ax[i].set_title(k)
+        if cfg.SNAPSHOT:
+            fig0, ax0 = plt.subplots()
+            if tiled.ndim == 2:
+                ax0.imshow(tiled, cmap='gray')
+            else:
+                ax0.imshow(tiled)
+            fig0.savefig(os.path.join(cfg.OUTPUT_PATH, k, 'dict.pdf'),
+                         bbox_inches='tight')
+            plt.close(fig0)
+    plt.show()
+
+
+def save_statistics(solvers):
+    """Save statistics (i.e. elapsed time) for later use."""
+    all_time_stats = {}
+    for k, v in solvers.items():
+        stats_arr = su.ntpl2array(v.getitstat())
+        np.save(os.path.join(cfg.OUTPUT_PATH, k, 'stats.npy'), stats_arr)
+        time_stats = {'Time': v.getitstat().Time}
+        with open(os.path.join(cfg.OUTPUT_PATH, k, 'time_stats.pkl'), 'wb') as f:
+            pickle.dump(time_stats, f)
+        all_time_stats.update({k: v.getitstat().Time})
+    return all_time_stats
 
 
 def main():
@@ -76,9 +120,10 @@ def main():
         os.makedirs(cfg.OUTPUT_PATH)
     log_name = os.path.join(
         cfg.OUTPUT_PATH,
-        '{:s}.{:%Y-%m-%d_%H-%M-%S}.log'.format(
+        '{:s}.{:%Y-%m-%d_%H-%M-%S}.{:s}.log'.format(
             cfg.NAME,
             datetime.datetime.now(),
+            'train_test' if args.run_test else 'train'
         )
     )
     setup_logging(log_name)
@@ -89,7 +134,6 @@ def main():
     logger.info(args)
     logger.info('Training with config:')
     logger.info(pprint.pformat(cfg))
-    # setup seeds and data types from cfg
     if cfg.RNG_SEED >= 0:
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -99,7 +143,13 @@ def main():
     logger.info('Solver definition:')
     logger.info(pprint.pformat(defs))
 
-    solvers = train_models(defs)
+    solvers = train_models(defs['TRAIN'])
+    if cfg.SNAPSHOT:
+        time_stats = save_statistics(solvers)
+    visualize_dicts(solvers)
+    if args.run_test:
+        # not implemented for now
+        pass
 
 
 if __name__ == "__main__":

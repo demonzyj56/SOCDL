@@ -49,7 +49,8 @@ class EpochLoader(object):
         self.transform = transform
 
     def __len__(self):
-        """To be implemented."""
+        """The length of a loader gives number of samples, but NOT epoch size.
+        """
         raise NotImplementedError
 
     def sample_from_index(self, index):

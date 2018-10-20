@@ -16,7 +16,7 @@ def default_transform(blob, pad_size=None, tikhonov=True):
         # fix lambda to be 5
         sl, sh = su.tikhonov_filter(blob, 5.)
     else:
-        sl, sh = 0, blob
+        sl, sh = np.zeros_like(blob), blob
     return sl, sh
 
 
@@ -39,5 +39,5 @@ def masked_transform(blob, pad_size=None, noise_fraction=0.5, l2denoise=True,
         sl = denoiser.solve()
         sh = mask * (blobw - sl)
     else:
-        sl, sh = 0, blobw
+        sl, sh = np.zeros_like(blobw), blobw
     return sl, sh, mask

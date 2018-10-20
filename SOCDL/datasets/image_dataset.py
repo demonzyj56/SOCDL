@@ -10,10 +10,10 @@ from ..utils import imread
 logger = logging.getLogger(__name__)
 
 
-__THIS_DIR = os.path.dirname(__file__)
+THIS_DIR = os.path.dirname(__file__)
 
 
-__image_list = {
+IMAGE_LIST = {
     'lena': 'images/ece533/lena.ppm',
     'barbara': 'images/sporco_get_images/standard/barbara.bmp',
     'boat.gray': 'images/misc/boat.512.tiff',
@@ -53,10 +53,10 @@ def create_image_blob(name, dtype=np.float32, scaled=True, gray=False,
         Loaded 3/4-D image blob.  The dimension is organized as [height, width,
         channels, batch], which is for the ease of internal use of SPORCO.
     """
-    img_list = __image_list[name]
+    img_list = IMAGE_LIST[name]
     if not isinstance(img_list, list):
         img_list = [img_list]
-    img_list = [os.path.join(__THIS_DIR, name) for name in img_list]
+    img_list = [os.path.join(THIS_DIR, name) for name in img_list]
     imgs = [imread(img, dtype, scaled, gray, dsize) for img in img_list]
     return np.stack(imgs, axis=-1)
 
@@ -68,7 +68,7 @@ class ImageDataset(Dataset):
                  dsize=None):
         if not isinstance(names, list):
             names = [names]
-        img_list = [os.path.join(__THIS_DIR, __image_list[n]) for n in names]
+        img_list = [os.path.join(THIS_DIR, IMAGE_LIST[n]) for n in names]
         self.imgs = [imread(img, dtype=dtype, scaled=scaled, gray=gray,
                             dsize=dsize) for img in img_list]
 
@@ -89,9 +89,9 @@ class FruitLoader(BlobLoader):
         """Load fruit or city dataset.  If use_processed is True, then use
         the processed data from `OCSC`."""
         if use_processed:
-            assert gray, 'Only grayscaled images are provided by OCSC'
+            assert gray, 'Only grayscale images are provided by OCSC'
             tt = 'train' if train else 'test'
-            path = os.path.join(__THIS_DIR, 'images', 'OCSC',
+            path = os.path.join(THIS_DIR, 'images', 'OCSC',
                                 '{}_10'.format(self._name), tt,
                                 '{}_lcne.mat'.format(tt))
             blob = sio.loadmat(path)['b'].astype(dtype)

@@ -63,6 +63,9 @@ __C.NUM_ATOMS = 100
 # Lambda
 __C.LAMBDA = 1.
 
+# Number of processes to invoke for testing.
+__C.NUM_PROCESSES = os.cpu_count()
+
 #-----------------------------#
 # Dataset options
 #-----------------------------#
