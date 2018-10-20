@@ -66,6 +66,9 @@ __C.LAMBDA = 1.
 # Number of processes to invoke for testing.
 __C.NUM_PROCESSES = os.cpu_count()
 
+# Whether to use GPU to test
+__C.GPU_TEST = False
+
 #-----------------------------#
 # Dataset options
 #-----------------------------#
