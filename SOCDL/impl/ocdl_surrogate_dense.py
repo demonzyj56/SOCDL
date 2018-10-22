@@ -208,7 +208,7 @@ class OnlineDictLearnDenseSurrogate(
                            dtype=self.dtype)
         self.timer.stop('xstep')
 
-        X = np.asarray(xstep.getcoef().reshape(self.cri.shpX), dtype=self.dtype)
+        # X = np.asarray(xstep.getcoef().reshape(self.cri.shpX), dtype=self.dtype)
         S = np.asarray(S.reshape(self.cri.shpS), dtype=self.dtype)
 
         # update At and Bt
@@ -239,8 +239,12 @@ class OnlineDictLearnDenseSurrogate(
         self.timer.start('solve_wo_eval')
 
         t = self.timer.elapsed(self.opt['IterTimer'])
-        itst = self.isc.iterstats(self.j, t, xstep.itstat[-1], dstep.itstat[-1],
-                                  evl)
+        if self.opt['OCDL', 'CUCBPDN']:
+            # this requires a slight modification of dictlrn
+            itst = self.isc.iterstats(self.j, t, None, dstep.itstat[-1], evl)
+        else:
+            itst = self.isc.iterstats(self.j, t, xstep.itstat[-1],
+                                      dstep.itstat[-1], evl)
         self.itstat.append(itst)
 
         if self.opt['Verbose']:
