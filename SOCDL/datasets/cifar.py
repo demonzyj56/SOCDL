@@ -16,7 +16,7 @@ class CIFAR10Loader(BlobLoader):
         else:
             blob = cifar_data.test_data
         blob = np.moveaxis(blob, 0, -1).astype(dtype, copy=True)
-        if scaled and not np.issubdtype(blob, np.integer):
+        if scaled and not np.issubdtype(blob.dtype, np.integer):
             blob /= 255.
         if gray:
             blob = blob[:, :, 0, :] * 0.2989 + blob[:, :, 1, :] * 0.5870 + \
