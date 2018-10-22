@@ -44,7 +44,11 @@ def get_batch_solver(cfg, D0, samples):
 
 def get_loader(train=True):
     """Get loader, with default arguments."""
-    transform = lambda blob: default_transform(blob, _cfg.PATCH_SIZE//2,
+    if _cfg.DATASET.PAD_BOUNDARY:
+        pad_size = _cfg.PATCH_SIZE // 2
+    else:
+        pad_size = None
+    transform = lambda blob: default_transform(blob, pad_size,
                                                _cfg.DATASET.TIKHONOV)
     args = dict(
         epochs=_cfg.EPOCHS,
