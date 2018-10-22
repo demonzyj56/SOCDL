@@ -55,6 +55,8 @@ def run_cbpdn_gpu(D, sl, sh, lmbda, test_blob=None, opt=None):
         imgr = sl[..., idx] + shr
         psnr += sm.psnr(imgr, test_blob[..., idx].squeeze(), rng=1.)
     psnr /= test_blob.shape[-1]
+    if _cfg.VERBOSE:
+        print('.', end='', flush=True)
     return fnc, psnr
 
 
@@ -68,6 +70,8 @@ def map_cbpdn_dicts(dicts, sl, sh, lmbda, test_blob=None, opt=None):
         if _cfg.GPU_TEST:
             results = [run_cbpdn_gpu(D, sl, sh, lmbda, test_blob, opt)
                        for D in dicts]
+            if _cfg.VERBOSE:
+                print(flush=True)
         else:
             with mp.Pool(_cfg.NUM_PROCESSES) as pool:
                 results = pool.map(
