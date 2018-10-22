@@ -46,7 +46,10 @@ class EpochLoader(object):
     def __init__(self, epochs=None, batch_size=None, transform=None):
         self.epochs = epochs
         self.batch_size = batch_size
-        self.transform = transform
+        if transform is None:
+            self.transform = lambda x: x
+        else:
+            self.transform = transform
 
     def __len__(self):
         """The length of a loader gives number of samples, but NOT epoch size.
@@ -59,26 +62,23 @@ class EpochLoader(object):
 
     def random_samples(self, index=None):
         """Randomly sample data from the dataset."""
-        if index is not None:
-            index = np.asarray(index)
-        else:
-            index = np.asarray(np.random.randint(len(self)))
-        return self.sample_from_index(index)
+        if index is None:
+            index = np.random.randint(len(self))
+        return self[index]
 
     def __getitem__(self, index):
-        return self.sample_from_index(np.array(index))
+        return self.transform(self.sample_from_index([index]))
 
     def __iter__(self):
         self.sampler = EpochSampler(len(self), self.epochs, self.batch_size)
         return self
 
     def __next__(self):
-        """The inherieted class is responsible for applying the transforms."""
         try:
             index = next(self.sampler)
         except Exception as e:
             raise e
-        return self.sample_from_index(index)
+        return self.transform(self.sample_from_index(index))
 
 
 class DatasetLoader(EpochLoader):
@@ -95,10 +95,6 @@ class DatasetLoader(EpochLoader):
         """Assume each sample in the dataset is an image with HWC layout."""
         sampled = [self.dataset[i] for i in index]
         sampled = np.stack(sampled, axis=-1)
-        if self.transform is not None:
-            sampled = self.transform(sampled)
-        else:
-            sampled = [sampled]
         return sampled
 
 
@@ -110,17 +106,10 @@ class BlobLoader(EpochLoader):
 
     def __init__(self, blob, epochs=None, batch_size=None, transform=None):
         super(BlobLoader, self).__init__(epochs, batch_size, transform)
-        if self.transform is not None:
-            transformed = self.transform(blob)
-            if isinstance(transformed, (list, tuple)):
-                self.blobs = transformed
-            else:
-                self.blobs = [transformed]
-        else:
-            self.blobs = [blob]
+        self.blob = blob
 
     def __len__(self):
-        return self.blobs[0].shape[-1]
+        return self.blob.shape[-1]
 
     def sample_from_index(self, index):
-        return [b[..., index] for b in self.blobs]
+        return self.blob[..., index]
