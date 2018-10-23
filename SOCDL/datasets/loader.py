@@ -61,13 +61,13 @@ class EpochLoader(object):
         raise NotImplementedError
 
     def random_samples(self, index=None):
-        """Randomly sample data from the dataset."""
+        """Randomly sample data with size of batch_size from the dataset."""
         if index is None:
-            index = np.random.randint(len(self))
+            index = np.random.randint(len(self), size=self.batch_size)
         return self[index]
 
     def __getitem__(self, index):
-        return self.transform(self.sample_from_index([index]))
+        return self.transform(self.sample_from_index(index))
 
     def __iter__(self):
         self.sampler = EpochSampler(len(self), self.epochs, self.batch_size)
