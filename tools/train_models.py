@@ -6,6 +6,7 @@ import logging
 import os
 import pprint
 import sys
+import warnings
 import yaml
 import pyfftw  # pylint: disable=unused-import
 import numpy as np
@@ -142,13 +143,16 @@ def main():
     if cfg.SNAPSHOT:
         for k, v in solvers.items():
             snapshot_solver_stats(v, os.path.join(cfg.OUTPUT_PATH, k))
-    visualize_dicts(solvers)
     if args.run_test:
         logger.info('Running test...')
         runner = test_models.GenericTestRunner(defs)
         runner.run()
         runner.plot_statistics()
+    visualize_dicts(solvers)
 
 
 if __name__ == "__main__":
-    main()
+    # surpress all warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        main()
