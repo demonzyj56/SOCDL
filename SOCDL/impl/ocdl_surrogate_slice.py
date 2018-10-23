@@ -218,6 +218,7 @@ class OnlineDictLearnSliceSurrogate(
             'OCDL': {
                 'p': 1.,  # forgetting exponent
                 'DiminishingTol': False,  # diminishing tolerance for FISTA
+                'MinTol': None,  # lower bound for diminishing tolerance
                 'CUCBPDN': False,  # use gpu version of cbpdn
                 'PARCBPDN': False,  # use parallel version of cbpdn
                 'nproc': None,  # Number of process for parcbpdn
@@ -358,8 +359,14 @@ class OnlineDictLearnSliceSurrogate(
         fopt = copy.deepcopy(self.opt['CCMOD'])
         fopt['X0'] = self.D
         if self.opt['OCDL', 'DiminishingTol']:
-            fopt['RelStopTol'] = \
-                self.dtype.type(self.opt['CCMOD', 'RelStopTol']/(1.+self.j))
+            if self.opt['OCDL', 'MinTol'] is None:
+                min_tol = 1e6
+            else:
+                min_tol = self.opt['OCDL', 'MinTol']
+            fopt['RelStopTol'] = max(
+                self.dtype.type(self.opt['CCMOD', 'RelStopTol']/(1.+self.j)),
+                min_tol
+            )
         self.timer.start('dstep')
         dstep = StripeSliceFISTA(self.At, self.Bt, opt=fopt)
         dstep.solve()
