@@ -148,6 +148,8 @@ def main():
         runner = test_models.GenericTestRunner(defs)
         runner.run()
         runner.plot_statistics()
+        if cfg.SNAPSHOT:
+            runner.dump()
     visualize_dicts(solvers)
 
 

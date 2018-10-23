@@ -19,7 +19,7 @@ from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
 from SOCDL.builder import get_loader, collect_time_stats, collect_dictionaries
 from SOCDL.runtest import map_cbpdn_dicts
 from SOCDL.utils import setup_logging
-import visualize_results
+from SOCDL.visualization import plot_statistics
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class GenericTestRunner(object):
 
     def __init__(self, defs):
         self.defs = defs
-        self.solver_names = defs['TRAIN'].keys()
+        self.solver_names = list(defs['TRAIN'].keys())
         self.time_stats = {k: collect_time_stats(k) for k in self.solver_names}
         self.dicts = {k: collect_dictionaries(k) for k in self.solver_names}
         self.results = None
@@ -123,15 +123,22 @@ class GenericTestRunner(object):
             dicts = self.dicts
         self.results = eval_models(dicts, self.defs['TEST'])
         for name in names:
-            target = self.defs['TEST']['DUPLICATED'][name]
-            self.results.update({name: self.results[target]})
+            if name in self.solver_names:
+                target = self.defs['TEST']['DUPLICATED'][name]
+                self.results.update({name: self.results[target]})
 
         return self.results
 
     def plot_statistics(self):
         """Plot the computed statistics."""
-        visualize_results.plot_statistics(self.results, self.time_stats)
+        plot_statistics(self.results, self.time_stats)
 
+    def dump(self):
+        """Dump runner."""
+        path = os.path.join(cfg.OUTPUT_PATH, 'runner.pkl')
+        logger.info('Test runner has been dumped to %s', path)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
 
 def main():
     """Main entry."""
@@ -166,6 +173,8 @@ def main():
     runner = GenericTestRunner(defs)
     runner.run()
     runner.plot_statistics()
+    if cfg.SNAPSHOT:
+        runner.dump()
 
 
 if __name__ == '__main__':
