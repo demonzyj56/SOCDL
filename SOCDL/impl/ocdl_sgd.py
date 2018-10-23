@@ -276,7 +276,7 @@ class OnlineDictLearnSGD(common.IterativeSolver):
             Z = np.stack([
                 cucbpdn.cbpdn(self.D.squeeze(), S[..., i], lmbda,
                               self.opt['CBPDN']) for i in range(S.shape[-1])
-            ], axis=-1)
+            ], axis=-2)
             Z = Z.reshape(self.cri.Nv + (1, self.cri.K, self.cri.M,))
             self.Z[:] = np.asarray(Z, dtype=self.dtype)
             self.Zf = sl.rfftn(self.Z, self.cri.Nv, self.cri.axisN)

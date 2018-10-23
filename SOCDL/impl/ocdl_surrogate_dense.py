@@ -195,7 +195,7 @@ class OnlineDictLearnDenseSurrogate(
             X = np.stack([
                 cucbpdn.cbpdn(self.getdict(), S[..., i].squeeze(),
                               self.lmbda, opt=copt) for i in range(S.shape[-1])
-            ], axis=-1)
+            ], axis=-2)
             X = np.asarray(X.reshape(self.cri.shpX), dtype=self.dtype)
         elif self.opt['OCDL', 'PARCBPDN']:
             popt = parcbpdn.ParConvBPDN.Options(dict(self.opt['CBPDN']))
