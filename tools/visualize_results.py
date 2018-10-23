@@ -5,7 +5,6 @@ import logging
 import pickle
 import os
 import sys
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
@@ -13,6 +12,7 @@ from matplotlib.ticker import MaxNLocator
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
 from SOCDL.utils import setup_logging
+from SOCDL.builder import collect_time_stats
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +28,6 @@ def parse_args():
         parser.print_help()
         sys.exit(1)
     return parser.parse_args()
-
-
-def collect_time_stats(key):
-    """Collect time statistics for a learned and cached solver."""
-    path = os.path.join(cfg.OUTPUT_PATH, key)
-    if os.path.exists(os.path.join(path, 'time_stats.pkl')):
-        with open(os.path.join(path, 'time_stats.pkl'), 'rb') as f:
-            time_stats = pickle.load(f)
-        return time_stats['Time']
-    else:
-        assert os.path.exists(os.path.join(path, 'stats.npy'))
-        s = np.load(os.path.join(path, 'stats.npy'))
-        return s[0][s[1].index('Time')]
 
 
 def plot_statistics(results, time_stats, class_legend=None):

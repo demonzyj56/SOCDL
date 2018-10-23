@@ -29,7 +29,7 @@ __C.NAME = 'default'
 # Rng to set. Negative values means randomly set.
 __C.RNG_SEED = 9527
 
-# The root path of cocoa.
+# The root path of SOCDL.
 __C.ROOT_PATH = os.path.join(os.path.dirname(__file__), '..', '..')
 
 # Default cache path.
@@ -48,11 +48,11 @@ __C.VERBOSE = True
 # Whether to snapshot
 __C.SNAPSHOT = True
 
-# Epochs to run for training
-__C.EPOCHS = 50
-
-# Batch size for training
-__C.BATCH_SIZE = 32
+# # Epochs to run for training
+# __C.EPOCHS = 50
+#
+# # Batch size for training
+# __C.BATCH_SIZE = 32
 
 # Height and width for dictionaries
 __C.PATCH_SIZE = 8
@@ -63,37 +63,100 @@ __C.NUM_ATOMS = 100
 # Lambda
 __C.LAMBDA = 1.
 
-# Number of processes to invoke for testing.
-__C.NUM_PROCESSES = os.cpu_count()
-
-# Whether to use GPU to test
-__C.GPU_TEST = False
+# # Number of processes to invoke for testing.
+# __C.NUM_PROCESSES = os.cpu_count()
+#
+# # Whether to use GPU to test
+# __C.GPU_TEST = False
 
 #-----------------------------#
 # Dataset options
 #-----------------------------#
 
-__C.DATASET = AttrDict()
+# __C.DATASET = AttrDict()
+#
+# # Which dataset to use
+# __C.DATASET.NAME = 'fruit'
+#
+# # Whether to use grayscale images
+# __C.DATASET.GRAY = False
+#
+# # A unified size for all images
+# # This is not valid for some datasets (e.g. fruit/city/cifar10).
+# __C.DATASET.SIZE = (256, 256)
+#
+# # Pad the input blob with zeros
+# __C.DATASET.PAD_BOUNDARY = True
+#
+# # Whether to apply tikhonov filter before solving CSC
+# __C.DATASET.TIKHONOV = True
+#
+# # Read a list of images as dataset.  This is only valid when the name of the
+# # dataset is `images`.
+# __C.DATASET.IMAGE_NAMES = []
+
+
+__DATASET = AttrDict()
 
 # Which dataset to use
-__C.DATASET.NAME = 'fruit'
+__DATASET.NAME = 'fruit'
 
 # Whether to use grayscale images
-__C.DATASET.GRAY = False
+__DATASET.GRAY = False
 
 # A unified size for all images
 # This is not valid for some datasets (e.g. fruit/city/cifar10).
-__C.DATASET.SIZE = (256, 256)
+__DATASET.SIZE = (256, 256)
 
 # Pad the input blob with zeros
-__C.DATASET.PAD_BOUNDARY = True
+__DATASET.PAD_BOUNDARY = True
 
 # Whether to apply tikhonov filter before solving CSC
-__C.DATASET.TIKHONOV = True
+__DATASET.TIKHONOV = True
 
 # Read a list of images as dataset.  This is only valid when the name of the
 # dataset is `images`.
-__C.DATASET.IMAGE_NAMES = []
+__DATASET.IMAGE_NAMES = []
+
+#-----------------------------#
+# Training options
+#-----------------------------#
+
+__C.TRAIN = AttrDict()
+
+# Dataset for training
+__C.TRAIN.DATASET = copy.deepcopy(__DATASET)
+
+# Epochs to run for training
+__C.TRAIN.EPOCHS = 50
+
+# Batch size for training
+__C.TRAIN.BATCH_SIZE = 32
+
+#-----------------------------#
+# Testing options
+#-----------------------------#
+
+__C.TEST = AttrDict()
+
+# dataset for testing
+__C.TEST.DATASET = copy.deepcopy(__DATASET)
+
+# Epochs to run for testing
+__C.TEST.EPOCHS = 50
+
+# Batch size for testing
+__C.TEST.BATCH_SIZE = 32
+
+# Whether to use gpu for testing
+__C.TEST.GPU = False
+
+# Number of processes to invoke for testing.
+__C.TEST.NUM_PROCESSES = os.cpu_count()
+
+# Maximum number of dictionaries to evaluate.  If negative, then evaluate over
+# all dicts.
+__C.TEST.MAX_NUM_DICT = -1
 
 
 def merge_cfg_from_file(cfg_filename):

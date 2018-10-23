@@ -4,7 +4,6 @@ import argparse
 import datetime
 import logging
 import os
-import pickle
 import pprint
 import sys
 import yaml
@@ -16,7 +15,8 @@ import sporco.util as su
 # add SOCDL working directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
-from SOCDL.builder import get_online_solvers, get_loader
+from SOCDL.builder import get_online_solvers, get_loader, \
+    snapshot_solver_dict, snapshot_solver_stats
 from SOCDL.utils import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -42,13 +42,13 @@ def parse_args():
 def train_models(defs):
     """Model training routine."""
     # initialize D0
-    if cfg.DATASET.GRAY:
+    if cfg.TRAIN.DATASET.GRAY:
         D0 = np.random.randn(cfg.PATCH_SIZE, cfg.PATCH_SIZE,
                              cfg.NUM_ATOMS).astype(np.float32)
     else:
         D0 = np.random.randn(cfg.PATCH_SIZE, cfg.PATCH_SIZE, 3,
                              cfg.NUM_ATOMS).astype(np.float32)
-    if not cfg.DATASET.TIKHONOV:
+    if not cfg.TRAIN.DATASET.TIKHONOV:
         D0[..., 0] = 1. / D0[..., 0].size
 
     # initialize loader
@@ -63,8 +63,8 @@ def train_models(defs):
             s.solve(sh)
             # For online solvers we explicitly save the dicts here.
             if cfg.SNAPSHOT:
-                path = os.path.join(cfg.OUTPUT_PATH, k, '{}.npy'.format(e))
-                np.save(path, s.getdict().squeeze())
+                path = os.path.join(cfg.OUTPUT_PATH, k)
+                snapshot_solver_dict(s, path, cur_cnt=e)
 
     return solvers
 
@@ -94,19 +94,6 @@ def visualize_dicts(solvers):
                          bbox_inches='tight')
             plt.close(fig0)
     plt.show()
-
-
-def save_statistics(solvers):
-    """Save statistics (i.e. elapsed time) for later use."""
-    all_time_stats = {}
-    for k, v in solvers.items():
-        stats_arr = su.ntpl2array(v.getitstat())
-        np.save(os.path.join(cfg.OUTPUT_PATH, k, 'stats.npy'), stats_arr)
-        time_stats = {'Time': v.getitstat().Time}
-        with open(os.path.join(cfg.OUTPUT_PATH, k, 'time_stats.pkl'), 'wb') as f:
-            pickle.dump(time_stats, f)
-        all_time_stats.update({k: v.getitstat().Time})
-    return all_time_stats
 
 
 def main():
@@ -145,7 +132,10 @@ def main():
 
     solvers = train_models(defs['TRAIN'])
     if cfg.SNAPSHOT:
-        time_stats = save_statistics(solvers)
+        time_stats = {
+            k: snapshot_solver_stats(v, os.path.join(cfg.OUTPUT_PATH, k))
+            for k, v in solvers.items()
+        }
     visualize_dicts(solvers)
     if args.run_test:
         # not implemented for now

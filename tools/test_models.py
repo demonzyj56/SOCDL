@@ -5,7 +5,6 @@ import datetime
 import logging
 import pickle
 import pprint
-import re
 import os
 import sys
 import time
@@ -17,7 +16,7 @@ import torch
 # add SOCDL working directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
-from SOCDL.builder import get_loader
+from SOCDL.builder import get_loader, collect_time_stats, collect_dictionaries
 from SOCDL.runtest import map_cbpdn_dicts
 from SOCDL.utils import setup_logging
 import visualize_results
@@ -40,25 +39,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def collect_dictionaries(key):
-    """Collect dictionaries for a learned and cached solver."""
-    base_dir = os.path.join(cfg.OUTPUT_PATH, key)
-    try:
-        files = os.listdir(base_dir)
-    except:
-        logger.info('Folder %s does not exists, no dict collected', base_dir)
-        return
-    pattern = re.compile(r'[0-9]+\.npy')
-    files = [f for f in files if pattern.match(f) is not None]
-    # sort paths according to index
-    files = sorted(files, key=lambda t: int(t.split('.')[-2]))
-    files = [os.path.join(base_dir, f) for f in files]
-    assert all([os.path.exists(f) for f in files])
-    dicts = [np.load(f) for f in files]
-    logger.info('Collected %d dictionaries from %s', len(dicts), base_dir)
-    return dicts
-
-
 def eval_models(dicts, defs):
     """Run tests over given dictionaries."""
     loader = get_loader(train=False)
@@ -67,7 +47,7 @@ def eval_models(dicts, defs):
         for k, ds in dicts.items():
             logger.info(
                 'Running CBPDN over %d dictionaries for %s on epoch %d/%d',
-                len(ds), k, e+1, cfg.EPOCHS
+                len(ds), k, e+1, loader.epochs
             )
             tic = time.time()
             r = map_cbpdn_dicts(ds, sl, sh, cfg.LAMBDA, sl+sh, defs['ConvBPDN'])
@@ -89,6 +69,45 @@ def eval_models(dicts, defs):
                     cfg.NAME, os.path.join(cfg.OUTPUT_PATH, 'results.pkl'))
 
     return results
+
+
+class GenericTestRunner(object):
+    """Generic test runner that works for most of cases."""
+
+    def __init__(self, defs):
+        self.defs = defs
+        self.solver_names = defs['TRAIN'].keys()
+        self.time_stats = {k: collect_time_stats(k) for k in self.solver_names}
+        self.dicts = {k: collect_dictionaries(k) for k in self.solver_names}
+        self.results = None
+        self.max_num_dict = cfg.TEST.MAX_NUM_DICT
+        for k in self.solver_names:
+            assert len(self.time_stats[k]) == len(self.dicts[k])
+            # sample max_num_dict from all dicts
+            if self.max_num_dict > 0 and self.max_num_dict < len(self.dicts[k]):
+                logger.info('Uniformly sampled %d/%d dictionaries from %s',
+                            self.max_num_dict, len(self.dicts[k]), k)
+                vt = self.time_stats[k]
+                self.time_stats[k] = [
+                    vt[int(np.ceil(i*len(vt)/self.max_num_dict))]
+                    for i in range(self.max_num_dict)
+                ]
+                vd = self.dicts[k]
+                self.dicts[k] = [
+                    vd[int(np.ceil(i*len(vd)/self.max_num_dict))]
+                    for i in range(self.max_num_dict)
+                ]
+
+    def run(self):
+        """The the test solver."""
+        logger.info('Testing sovlers:')
+        logger.info(self.solver_names)
+        self.results = eval_models(self.dicts, self.defs['TEST'])
+        return self.results
+
+    def plot_statistics(self):
+        """Plot the computed statistics."""
+        visualize_results.plot_statistics(self.results, self.time_stats)
 
 
 def main():
@@ -121,16 +140,9 @@ def main():
         torch.cuda.manual_seed_all(cfg.RNG_SEED)
     with open(args.def_file, 'r') as f:
         defs = yaml.load(f)
-    solver_names = defs['TRAIN'].keys()
-    logger.info('Testing solvers:')
-    logger.info(solver_names)
-
-    dicts = {k: collect_dictionaries(k) for k in solver_names}
-    results = eval_models(dicts, defs['TEST'])
-    time_stats = {
-        k: visualize_results.collect_time_stats(k) for k in solver_names
-    }
-    visualize_results.plot_statistics(results, time_stats)
+    runner = GenericTestRunner(defs)
+    runner.run()
+    runner.plot_statistics()
 
 
 if __name__ == '__main__':

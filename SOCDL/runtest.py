@@ -39,7 +39,7 @@ def run_cbpdn(D, sl, sh, lmbda, test_blob=None, opt=None):
 
 def run_cbpdn_gpu(D, sl, sh, lmbda, test_blob=None, opt=None):
     """Run GPU version of CBPDN.  Only supports grayscale images."""
-    assert _cfg.DATASET.GRAY, 'Only grayscale images are supported'
+    assert _cfg.TEST.DATASET.GRAY, 'Only grayscale images are supported'
     assert cucbpdn is not None, 'GPU CBPDN is not supported'
     opt = cbpdn.ConvBPDN.Options(opt)
     if test_blob is None:
@@ -67,13 +67,13 @@ def map_cbpdn_dicts(dicts, sl, sh, lmbda, test_blob=None, opt=None):
     # catch deprecated warnings in pyfftw and ignore it
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        if _cfg.GPU_TEST:
+        if _cfg.TEST.GPU:
             results = [run_cbpdn_gpu(D, sl, sh, lmbda, test_blob, opt)
                        for D in dicts]
             if _cfg.VERBOSE:
                 print(flush=True)
         else:
-            with mp.Pool(_cfg.NUM_PROCESSES) as pool:
+            with mp.Pool(_cfg.TEST.NUM_PROCESSES) as pool:
                 results = pool.map(
                     functools.partial(run_cbpdn, sl=sl, sh=sh, lmbda=lmbda,
                                       test_blob=test_blob, opt=opt),

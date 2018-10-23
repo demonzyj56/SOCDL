@@ -1,11 +1,55 @@
 """Build the corresponding learners given the configs."""
+import functools
+import logging
+import re
 import os
+import pickle
 import numpy as np
+import sporco.util as su
 from sporco.dictlrn.cbpdndl import ConvBPDNDictLearn
 from .configs import cfg as _cfg
 from .impl import *
 from .datasets import *
 from .datasets.transforms import default_transform
+
+logger = logging.getLogger(__name__)
+pattern = re.compile(r'[0-9]+\.npy')
+
+
+def snapshot_solver_dict(solver, path, cur_cnt=None):
+    """Saving solver's current dict to path.  This requires that the solver
+    has method `getdict()`."""
+    stype = type(solver).__name__
+    if _cfg.SNAPSHOT:
+        assert hasattr(solver, 'getdict'), \
+            'Cannot snapshot {} since it does not ' \
+            'have `getdict` method.'.format(stype)
+        # parse filename
+        if cur_cnt is not None:
+            cnt = cur_cnt
+        elif hasattr(solver, 'j'):
+            cnt = solver.j
+        else:
+            logger.warning('%s does not have iteration counter, try parsing'
+                           'from path %s', stype, path)
+            cnt = max([int(f.split('.')[-2]) for f in os.listdir(path)
+                       if pattern.match(f) is not None])
+
+        _D = solver.getdict().squeeze()
+        np.save(os.path.join(path, '{}.npy'.format(cnt)), _D)
+    return 0
+
+
+def snapshot_solver_stats(solver, path):
+    """Save solver's running time statistics (and others) to path."""
+    if _cfg.SNAPSHOT:
+        stats_arr = su.ntpl2array(solver.getitstat())
+        np.save(os.path.join(path, 'stats.npy'), stats_arr)
+        time_stats = {'Time': solver.getitstat().Time}
+        with open(os.path.join(path, 'time_stats.pkl'), 'wb') as f:
+            pickle.dump(time_stats, f)
+        return time_stats
+    return None
 
 
 def get_online_solvers(cfg, D0, init_sample):
@@ -28,15 +72,8 @@ def get_batch_solver(cfg, D0, samples):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    def _callback(d):
-        """Snapshot dictionaries for every iteration."""
-        if _cfg.SNAPSHOT:
-            _D = d.getdict().squeeze()
-            np.save(os.path.join(
-                path, '{}.{}.npy'.format(_cfg.DATASET.NAME, d.j)), _D)
-        return 0
-
-    opt['Callback'] = _callback
+    opt['Callback'] = functools.partial(snapshot_solver_dict,
+                                        path=path, cur_cnt=None)
     solver = ConvBPDNDictLearn(D0, samples, _cfg.LAMBDA, opt=opt,
                                xmethod='admm', dmethod='cns')
     return {'ConvBPDNDictLearn': solver}
@@ -44,22 +81,22 @@ def get_batch_solver(cfg, D0, samples):
 
 def get_loader(train=True):
     """Get loader, with default arguments."""
-    if _cfg.DATASET.PAD_BOUNDARY:
+    dcfg = _cfg.TRAIN.DATASET if train else _cfg.TEST.DATASET
+    if dcfg.PAD_BOUNDARY:
         pad_size = _cfg.PATCH_SIZE // 2
     else:
         pad_size = None
-    transform = lambda blob: default_transform(blob, pad_size,
-                                               _cfg.DATASET.TIKHONOV)
+    transform = lambda blob: default_transform(blob, pad_size, dcfg.TIKHONOV)
     args = dict(
-        epochs=_cfg.EPOCHS,
-        batch_size=_cfg.BATCH_SIZE,
+        epochs=_cfg.TRAIN.EPOCHS if train else _cfg.TEST.EPOCHS,
+        batch_size=_cfg.TRAIN.BATCH_SIZE if train else _cfg.TEST.BATCH_SIZE,
         train=train,
         dtype=np.float32,
         scaled=True,
-        gray=_cfg.DATASET.GRAY,
+        gray=dcfg.GRAY,
         transform=transform
     )
-    name = _cfg.DATASET.NAME
+    name = dcfg.NAME
     if name == 'cifar10':
         loader = CIFAR10Loader(root=_cfg.CACHE_PATH, **args)
     elif name == 'cifar100':
@@ -73,19 +110,48 @@ def get_loader(train=True):
     elif name == 'city.ocsc':
         loader = CityLoader(use_processed=True, **args)
     elif name == 'voc07':
-        loader = VOC07Loader(root=_cfg.CACHE_PATH, dsize=_cfg.DATASET.SIZE,
-                             **args)
+        loader = VOC07Loader(root=_cfg.CACHE_PATH, dsize=dcfg.SIZE, **args)
     elif name == '17flowers':
         loader = VGG17FlowersLoader(root=_cfg.CACHE_PATH,
-                                    dsize=_cfg.DATASET.SIZE, **args)
+                                    dsize=dcfg.SIZE, **args)
     elif name == '102flowers':
         loader = VGG102FlowersLoader(root=_cfg.CACHE_PATH,
-                                     dsize=_cfg.DATASET.SIZE, **args)
+                                     dsize=dcfg.SIZE, **args)
     elif name == 'images':
         args.pop('train')
-        loader = ImageLoader(names=_cfg.DATASET.IMAGE_NAMES,
-                             dsize=_cfg.DATASET.SIZE, **args)
+        loader = ImageLoader(names=dcfg.IMAGE_NAMES,
+                             dsize=dcfg.SIZE, **args)
     else:
         raise KeyError('Unknown loader name: {}'.format(name))
     return loader
 
+
+def collect_dictionaries(key):
+    """Collect dictionaries for a learned and cached solver."""
+    base_dir = os.path.join(_cfg.OUTPUT_PATH, key)
+    try:
+        files = os.listdir(base_dir)
+    except:
+        logger.info('Folder %s does not exists, no dict collected', base_dir)
+        return
+    files = [f for f in files if pattern.match(f) is not None]
+    # sort paths according to index
+    files = sorted(files, key=lambda t: int(t.split('.')[-2]))
+    files = [os.path.join(base_dir, f) for f in files]
+    assert all([os.path.exists(f) for f in files])
+    dicts = [np.load(f) for f in files]
+    logger.info('Collected %d dictionaries from %s', len(dicts), base_dir)
+    return dicts
+
+
+def collect_time_stats(key):
+    """Collect time statistics for a learned and cached solver."""
+    path = os.path.join(_cfg.OUTPUT_PATH, key)
+    if os.path.exists(os.path.join(path, 'time_stats.pkl')):
+        with open(os.path.join(path, 'time_stats.pkl'), 'rb') as f:
+            time_stats = pickle.load(f)
+        return time_stats['Time']
+    else:
+        assert os.path.exists(os.path.join(path, 'stats.npy'))
+        s = np.load(os.path.join(path, 'stats.npy'))
+        return s[0][s[1].index('Time')]
