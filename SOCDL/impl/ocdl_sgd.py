@@ -258,9 +258,6 @@ class OnlineDictLearnSGD(common.IterativeSolver):
                 if self.cri.Cd > 1 or self.cri.Cx > 1:
                     raise ValueError('CUDA CBPDN solver can only be used for '
                                      'single channel problems')
-                if self.cri.K > 1:
-                    raise ValueError('CUDA CBPDN solver can not be used with '
-                                     'mini-batches')
             #  self.Df = sl.pyfftw_byte_aligned(sl.rfftn(self.D, self.cri.Nv,
             #                                            self.cri.axisN))
             self.Df = pyfftw.byte_align(sl.rfftn(self.D, self.cri.Nv,
@@ -276,9 +273,11 @@ class OnlineDictLearnSGD(common.IterativeSolver):
         """Solve CSC problem for training data `S`."""
 
         if self.opt['CUDA_CBPDN']:
-            Z = cucbpdn.cbpdn(self.D.squeeze(), S[..., 0], lmbda,
-                              self.opt['CBPDN'])
-            Z = Z.reshape(self.cri.Nv + (1, 1, self.cri.M,))
+            Z = np.stack([
+                cucbpdn.cbpdn(self.D.squeeze(), S[..., i], lmbda,
+                              self.opt['CBPDN']) for i in range(S.shape[-1])
+            ], axis=-1)
+            Z = Z.reshape(self.cri.Nv + (1, self.cri.K, self.cri.M,))
             self.Z[:] = np.asarray(Z, dtype=self.dtype)
             self.Zf = sl.rfftn(self.Z, self.cri.Nv, self.cri.axisN)
             self.Sf = sl.rfftn(S.reshape(self.cri.shpS), self.cri.Nv,
