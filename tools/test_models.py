@@ -113,7 +113,19 @@ class GenericTestRunner(object):
         """The the test solver."""
         logger.info('Testing sovlers:')
         logger.info(self.solver_names)
-        self.results = eval_models(self.dicts, self.defs['TEST'])
+        if 'DUPLICATED' in self.defs['TEST']:
+            names = self.defs['TEST']['DUPLICATED'].keys()
+            dicts = {k: v for k, v in self.dicts.items() if k not in names}
+            logger.info('Skip testing %s to avoid duplicated computations',
+                        ', '.join(names))
+        else:
+            names = []
+            dicts = self.dicts
+        self.results = eval_models(dicts, self.defs['TEST'])
+        for name in names:
+            target = self.defs['TEST']['DUPLICATED'][name]
+            self.results.update({name: self.results[target]})
+
         return self.results
 
     def plot_statistics(self):
