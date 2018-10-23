@@ -18,6 +18,7 @@ from SOCDL.configs.configs import cfg, merge_cfg_from_file, merge_cfg_from_list
 from SOCDL.builder import get_online_solvers, get_loader, \
     snapshot_solver_dict, snapshot_solver_stats
 from SOCDL.utils import setup_logging
+import test_models
 
 logger = logging.getLogger(__name__)
 
@@ -132,14 +133,14 @@ def main():
 
     solvers = train_models(defs['TRAIN'])
     if cfg.SNAPSHOT:
-        time_stats = {
-            k: snapshot_solver_stats(v, os.path.join(cfg.OUTPUT_PATH, k))
-            for k, v in solvers.items()
-        }
+        for k, v in solvers.items():
+            snapshot_solver_stats(v, os.path.join(cfg.OUTPUT_PATH, k))
     visualize_dicts(solvers)
     if args.run_test:
-        # not implemented for now
-        pass
+        logger.info('Running test...')
+        runner = test_models.GenericTestRunner(defs)
+        runner.run()
+        runner.plot_statistics()
 
 
 if __name__ == "__main__":
