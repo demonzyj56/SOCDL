@@ -59,6 +59,13 @@ def train_models(defs):
     # initialize solvers
     solvers = get_online_solvers(defs, D0, init_sample)
 
+    # The GPU needs to be warmed up.
+    # TODO(leoyolo): more canonical way of warming up.
+    if torch.cuda.is_available():
+        dummy = torch.randn(1).cuda()
+        for _ in range(5):
+            dummy.add_(1.)
+
     for e, (_, sh) in enumerate(loader):
         for k, s in solvers.items():
             s.solve(sh)

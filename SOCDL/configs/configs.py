@@ -158,6 +158,10 @@ __C.TEST.NUM_PROCESSES = os.cpu_count()
 # all dicts.
 __C.TEST.MAX_NUM_DICT = -1
 
+# When > 0, drops the first K dictionaries.  This is to ensures that all solvers
+# are properly warmed up.
+__C.TEST.DROP_FIRST_K = -1
+
 
 def merge_cfg_from_file(cfg_filename):
     """Load a yaml config file and merge it into the global config."""

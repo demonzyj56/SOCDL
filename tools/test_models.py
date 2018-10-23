@@ -83,6 +83,17 @@ class GenericTestRunner(object):
         self.max_num_dict = cfg.TEST.MAX_NUM_DICT
         for k in self.solver_names:
             assert len(self.time_stats[k]) == len(self.dicts[k])
+            # Optionally drop first k samples.
+            if cfg.TEST.DROP_FIRST_K > 0 and \
+                    cfg.TEST.DROP_FIRST_K < len(self.dicts[k]):
+                logger.info('Dropping the first %d of %d dictionaries from %s',
+                            cfg.TEST.DROP_FIRST_K, len(self.dicts[k]), k)
+                self.time_stats[k] = [
+                    t - self.time_stats[k][cfg.TEST.DROP_FIRST_K-1]
+                    for i, t in enumerate(self.time_stats[k])
+                    if i >= cfg.TEST.DROP_FIRST_K
+                ]
+                self.dicts[k] = self.dicts[k][cfg.TEST.DROP_FIRST_K:]
             # sample max_num_dict from all dicts
             if self.max_num_dict > 0 and self.max_num_dict < len(self.dicts[k]):
                 logger.info('Uniformly sampled %d/%d dictionaries from %s',
