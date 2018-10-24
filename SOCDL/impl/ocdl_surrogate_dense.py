@@ -229,7 +229,7 @@ class OnlineDictLearnDenseSurrogate(
         fopt['X0'] = self.D
         if self.opt['OCDL', 'DiminishingTol']:
             if self.opt['OCDL', 'MinTol'] is None:
-                min_tol = 1e6
+                min_tol = 0.
             else:
                 min_tol = self.opt['OCDL', 'MinTol']
             fopt['RelStopTol'] = max(
