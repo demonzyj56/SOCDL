@@ -119,8 +119,14 @@ def get_loader(train=True):
                                      dsize=dcfg.SIZE, **args)
     elif name == 'images':
         args.pop('train')
-        loader = ImageLoader(names=dcfg.IMAGE_NAMES,
-                             dsize=dcfg.SIZE, **args)
+        loader = ImageLoader(names=dcfg.IMAGE_NAMES, dsize=dcfg.SIZE, **args)
+    elif name == 'stl10':
+        args.pop('train')
+        category = 'train' if train else 'test'
+        loader = STL10Loader(root=_cfg.CACHE_PATH, category=category, **args)
+    elif name == 'stl10.unlabeled':
+        args.pop('train')
+        loader = STL10Loader(root=_cfg.CACHE_PATH, category='unlabeled', **args)
     else:
         raise KeyError('Unknown loader name: {}'.format(name))
     return loader
