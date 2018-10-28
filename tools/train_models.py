@@ -82,10 +82,10 @@ def visualize_dicts(solvers):
     """Show visualizations of learned dictionaries."""
     try:
         import matplotlib.pyplot as plt
+        _, ax = plt.subplots(1, len(solvers), figsize=(7*len(solvers), 7))
     except:
         logger.warning('plt is not available, thus not visualizing dicts')
         return
-    fig, ax = plt.subplots(1, len(solvers), figsize=(7*len(solvers), 7))
     for i, (k, v) in enumerate(solvers.items()):
         tiled = su.tiledict(v.getdict().squeeze())
         if tiled.ndim == 2:
