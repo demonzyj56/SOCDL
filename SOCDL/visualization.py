@@ -20,7 +20,11 @@ def plot_statistics(results, time_stats, class_legend=None):
         psnrs.update({k: psnr})
 
     # create fig
-    fig, ax = plt.subplots(1, 3, figsize=(21, 7))
+    try:
+        fig, ax = plt.subplots(1, 3, figsize=(21, 7))
+    except:
+        logger.warning('No DISPLAY is available, or matplotlib is not available')
+        return
 
     for k, v in time_stats.items():
         if class_legend is not None:
