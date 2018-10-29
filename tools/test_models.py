@@ -8,6 +8,7 @@ import pprint
 import os
 import sys
 import time
+import warnings
 import yaml
 import pyfftw  # pylint: disable=unused-import
 import numpy as np
@@ -178,4 +179,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        main()

@@ -28,7 +28,7 @@ def run_cbpdn(D, sl, sh, lmbda, test_blob=None, opt=None):
     solver = cbpdn.ConvBPDN(D, sh, lmbda, opt=opt)
     solver.solve()
     fnc = solver.getitstat().ObjFun[-1]
-    shr = solver.reconstruct().squeeze()
+    shr = solver.reconstruct().reshape(sl.shape)
     imgr = sl + shr
     psnr = 0.
     for idx in range(sh.shape[-1]):
