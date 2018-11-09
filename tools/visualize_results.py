@@ -6,6 +6,7 @@ import pickle
 import os
 import sys
 import matplotlib.pyplot as plt
+import yaml
 
 # add SOCDL working directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -21,6 +22,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Result visualization.')
     parser.add_argument('--cfg', dest='cfg_file', default=None, type=str,
                         help='cfg file to parse options from')
+    parser.add_argument('--def', dest='def_file', default=None, type=str,
+                        help='cfg file that defines configs for solvers')
     parser.add_argument('opts', default=None, nargs=argparse.REMAINDER,
                         help='Command line arguments')
     if len(sys.argv) == 1:
@@ -56,9 +59,18 @@ def main():
     assert os.path.exists(cfg.OUTPUT_PATH)
     setup_logging()
     # collect results
-    with open(os.path.join(cfg.OUTPUT_PATH, 'runner.pkl'), 'rb') as f:
-        runner = pickle.load(f)
-    plot_statistics(runner.results, runner.time_stats)
+    if os.path.exists(os.path.join(cfg.OUTPUT_PATH, 'runner.pkl')):
+        logger.info('Loading runner from %s',
+                    os.path.join(cfg.OUTPUT_PATH, 'runner.pkl'))
+        with open(os.path.join(cfg.OUTPUT_PATH, 'runner.pkl'), 'rb') as f:
+            runner = pickle.load(f)
+    else:
+        assert args.def_file is not None and os.path.exists(args.def_file)
+        with open(args.def_file, 'r') as f:
+            defs = yaml.load(f)
+        runner = GenericTestRunner(defs)
+        runner.load_results()
+    runner.plot_statistics()
 
 
 if __name__ == '__main__':

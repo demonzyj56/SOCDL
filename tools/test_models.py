@@ -130,8 +130,24 @@ class GenericTestRunner(object):
 
         return self.results
 
+    def load_results(self):
+        """Load the computed results. For each solver the results are assumed
+        to have same length as time_stats."""
+        path = os.path.join(cfg.OUTPUT_PATH, 'results.pkl')
+        assert os.path.exists(path)
+        logger.info('Loading results from %s', path)
+        with open(path, 'rb') as f:
+            self.results = pickle.load(f)
+        for name in self.defs['TEST']['DUPLICATED'].keys():
+            if name in self.solver_names:
+                target = self.defs['TEST']['DUPLICATED'][name]
+                self.results.update({name: self.results[target]})
+
     def plot_statistics(self):
         """Plot the computed statistics."""
+        if self.results is None:
+            logger.info('No results available, thus not plotting')
+            return
         plot_statistics(self.results, self.time_stats)
 
     def dump(self):
@@ -140,6 +156,7 @@ class GenericTestRunner(object):
         logger.info('Test runner has been dumped to %s', path)
         with open(path, 'wb') as f:
             pickle.dump(self, f)
+
 
 def main():
     """Main entry."""
@@ -173,9 +190,9 @@ def main():
         defs = yaml.load(f)
     runner = GenericTestRunner(defs)
     runner.run()
-    runner.plot_statistics()
     if cfg.SNAPSHOT:
         runner.dump()
+    runner.plot_statistics()
 
 
 if __name__ == '__main__':
