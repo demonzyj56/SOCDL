@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Model testing routines."""
 import argparse
+import copy
 import datetime
 import logging
 import pickle
@@ -156,6 +157,23 @@ class GenericTestRunner(object):
         logger.info('Test runner has been dumped to %s', path)
         with open(path, 'wb') as f:
             pickle.dump(self, f)
+
+    def export_data(self):
+        """Export learned data into a dict that can be loaded anywhere."""
+        fncs, psnrs = {}, {}
+        for k, v in self.results.items():
+            fnc, psnr = list(zip(*v))
+            fncs.update({k: fnc})
+            psnrs.update({k: psnr})
+        path = os.path.join(cfg.OUTPUT_PATH, 'packed_data.pkl')
+        logger.info('Pack data to %s', path)
+        packed_data = dict(
+            time_stats=copy.deepcopy(self.time_stats),
+            fncs=fncs,
+            psnrs=psnrs
+        )
+        with open(path, 'wb') as f:
+            pickle.dump(packed_data, f)
 
 
 def main():

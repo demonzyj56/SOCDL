@@ -133,6 +133,8 @@ def main():
             defs = yaml.load(f)
         runner = GenericTestRunner(defs)
         runner.load_results()
+    # pack results
+    runner.export_data()
     plotter = Plotter(runner, show=(not args.no_show))
     plotter.plot_obj_vs_time()
     plotter.plot_obj_vs_iteration()
