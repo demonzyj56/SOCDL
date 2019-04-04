@@ -55,7 +55,7 @@ def train_models(defs):
 
     # initialize loader
     loader = get_loader(train=True)
-    init_sample = loader.random_samples()[1]
+    init_sample = loader.random_samples()
 
     # initialize solvers
     solvers = get_online_solvers(defs, D0, init_sample)
