@@ -10,7 +10,8 @@ from sporco.dictlrn.cbpdndl import ConvBPDNDictLearn
 from .configs import cfg as _cfg
 from .impl import *
 from .datasets import *
-from .datasets.transforms import default_transform
+from .datasets.transforms import default_transform, masked_transform
+from .datasets.mask_injection import MaskInjection
 
 logger = logging.getLogger(__name__)
 pattern = re.compile(r'[0-9]+\.npy')
@@ -86,7 +87,13 @@ def get_loader(train=True):
         pad_size = _cfg.PATCH_SIZE // 2
     else:
         pad_size = None
-    transform = lambda blob: default_transform(blob, pad_size, dcfg.TIKHONOV)
+    if not _cfg.MASK.ENABLED:
+        transform = lambda blob: default_transform(
+            blob, pad_size, dcfg.TIKHONOV
+        )
+    else:
+        # inject mask AFTER initialization of dataset loader
+        transform = None
     args = dict(
         epochs=_cfg.TRAIN.EPOCHS if train else _cfg.TEST.EPOCHS,
         batch_size=_cfg.TRAIN.BATCH_SIZE if train else _cfg.TEST.BATCH_SIZE,
@@ -129,6 +136,11 @@ def get_loader(train=True):
         loader = STL10Loader(root=_cfg.CACHE_PATH, category='unlabeled', **args)
     else:
         raise KeyError('Unknown loader name: {}'.format(name))
+    if _cfg.MASK.ENABLED:
+        wtransform = lambda blob, mask: masked_transform(
+            blob, mask, pad_size, _cfg.MASK.L2DENOISE, dcfg.GRAY
+        )
+        loader = MaskInjection(loader, _cfg.MASK.NOISE, wtransform)
     return loader
 
 

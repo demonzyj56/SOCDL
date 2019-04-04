@@ -64,7 +64,10 @@ class EpochLoader(object):
         """Randomly sample data with size of batch_size from the dataset."""
         if index is None:
             index = np.random.randint(len(self), size=self.batch_size)
-        return self[index]
+        samples = self[index]
+        if isinstance(samples, list) or isinstance(samples, tuple):
+            samples = samples[0]
+        return samples.squeeze()
 
     def __getitem__(self, index):
         return self.transform(self.sample_from_index(index))

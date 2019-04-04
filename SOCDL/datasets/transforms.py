@@ -20,9 +20,8 @@ def default_transform(blob, pad_size=None, tikhonov=True):
     return sl, sh
 
 
-def masked_transform(blob, pad_size=None, noise_fraction=0.5, l2denoise=True,
+def masked_transform(blob, mask, pad_size=None, l2denoise=True,
                      gray=False):
-    mask = su.rndmask(blob.shape, noise_fraction, dtype=blob.dtype)
     blobw = blob * mask
     if pad_size is not None:
         pad = [(pad_size, pad_size), (pad_size, pad_size)] + \
@@ -40,4 +39,4 @@ def masked_transform(blob, pad_size=None, noise_fraction=0.5, l2denoise=True,
         sh = mask * (blobw - sl)
     else:
         sl, sh = np.zeros_like(blobw), blobw
-    return sl, sh, mask
+    return sl, sh, blob, mask

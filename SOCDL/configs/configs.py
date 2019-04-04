@@ -162,6 +162,21 @@ __C.TEST.MAX_NUM_DICT = -1
 # are properly warmed up.
 __C.TEST.DROP_FIRST_K = -1
 
+#-----------------------------#
+# Mask options
+#-----------------------------#
+
+__C.MASK = AttrDict()
+
+# Whether to apply mask.
+__C.MASK.ENABLED = False
+
+# Mask noise fraction, should between 0 and 1.
+__C.MASK.NOISE = 0.5
+
+# Whether to apply l2 denoising as low-pass filter.
+__C.MASK.L2DENOISE = True
+
 
 def merge_cfg_from_file(cfg_filename):
     """Load a yaml config file and merge it into the global config."""
