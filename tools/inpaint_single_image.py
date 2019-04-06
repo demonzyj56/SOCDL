@@ -88,10 +88,14 @@ def decompose_image(img, mask):
         denoiser = tvl2.TVL2Denoise(imgw, 0.05, tvl2opt,
                                     caxis=None if cfg.TRAIN.DATASET.GRAY else 2)
         sl = denoiser.solve()
-        sh = maskw * (imgw - sl)
+        sh = imgw - sl
+        if cfg.VERBOSE:
+            logger.info('L2Denoise PSNR: {:.2f}'.format(
+                sm.psnr(img, crop_func(sh*maskw+sl), rng=1.)
+            ))
     else:
         sl, sh = np.zeros_like(imgw), imgw
-    return sl, sh, imgw, maskw
+    return sl, sh, maskw
 
 
 def save_image(img, path):
@@ -104,7 +108,7 @@ def save_image(img, path):
 
 
 def train_online_solver(D0, train_defs, test_defs, slw, shw, img, mask, crop_func):
-    # Note that img is 3-dim.
+    # Note that img is 4-dim.
     key = list(train_defs.keys())[0]  # only one key is available
     solver = get_online_solvers(train_defs, D0, shw)[key]
     path = os.path.join(cfg.OUTPUT_PATH, key)
@@ -120,12 +124,12 @@ def train_online_solver(D0, train_defs, test_defs, slw, shw, img, mask, crop_fun
             logger.info('PSNR for {} at iteration {} is {:.2f}'.format(
                 key, e, psnr
             ))
-    return dict(key=solver)
-
+    return {key: solver}
 
 def trainConvBPDNMaskDictLearn(D0, train_defs, test_defs, slw, shw, img, mask, crop_func):
     key = list(train_defs.keys())[0]
     path = os.path.join(cfg.OUTPUT_PATH, key)
+    os.makedirs(path, exist_ok=True)
 
     def _callback(d):
         """Snapshot dictionaries for every iteration."""
@@ -142,12 +146,12 @@ def trainConvBPDNMaskDictLearn(D0, train_defs, test_defs, slw, shw, img, mask, c
         return 0
 
     opts = train_defs['ConvBPDNMaskDictLearn']
-    opts.update({'Callback': _callback})
+    opts.update({'Callback': _callback, 'MaxMainIter': cfg.TRAIN.EPOCHS})
     mdopt = cbpdndlmd.ConvBPDNMaskDictLearn.Options(opts, dmethod='cns')
     solver = cbpdndlmd.ConvBPDNMaskDictLearn(D0, shw, cfg.LAMBDA, mask,
                                              opt=mdopt, dmethod='cns')
     solver.solve()
-    return dict(key=solver)
+    return {key: solver}
 
 
 def trainKSVD(D0, train_defs, test_defs, slw, shw, img, mask, crop_func):
@@ -165,9 +169,18 @@ def train_models(defs):
     if not cfg.TRAIN.DATASET.TIKHONOV:
         D0[..., 0] = 1. / D0[..., 0].size
     # get image and mask
-    img = create_image_blob(cfg.TRAIN.DATASET.IMAGE_NAMES[0]).squeeze()
+    img = create_image_blob(cfg.TRAIN.DATASET.IMAGE_NAMES[0])
     mask = su.rndmask(img.shape, cfg.MASK.NOISE, img.dtype)
-    slw, shw, imgw, maskw = decompose_image(img, mask)
+    if cfg.VERBOSE:
+        logger.info('Corrupted image PSNR: {:.2f}'.format(
+            sm.psnr(img, img*mask, rng=1.)
+        ))
+    if cfg.SNAPSHOT:
+        save_image(img*mask, os.path.join(
+            cfg.OUTPUT_PATH,
+            '{}_corrupted.png'.format(cfg.TRAIN.DATASET.IMAGE_NAMES[0])
+        ))
+    slw, shw, maskw = decompose_image(img, mask)
     socdl_def = defs['TRAIN'].get('OnlineDictLearnSliceSurrogate', None)
     ocdl_sgd_def = defs['TRAIN'].get('OnlineDictLearnSGDMask', None)
     cbpdndlmd_def = defs['TRAIN'].get('ConvBPDNMaskDictLearn', None)
@@ -176,25 +189,25 @@ def train_models(defs):
     if socdl_def is not None:
         socdl = train_online_solver(
             D0, {'OnlineDictLearnSliceSurrogate': socdl_def},
-            defs['TEST']['ConvBPDN'], slw, shw, imgw, maskw, crop_func
+            defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(socdl)
     if ocdl_sgd_def is not None:
         ocdl_sgd = train_online_solver(
             D0, {'OnlineDictLearnSGDMask': ocdl_sgd_def},
-            defs['TEST']['ConvBPDN'], slw, shw, imgw, maskw, crop_func
+            defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(ocdl_sgd)
     if cbpdndlmd_def is not None:
         cbpdndlmd_dict = trainConvBPDNMaskDictLearn(
             D0, {'ConvBPDNMaskDictLearn': cbpdndlmd_def},
-            defs['TEST']['ConvBPDN'], slw, shw, imgw, maskw, crop_func
+            defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(cbpdndlmd_dict)
     if ksvd_def is not None:
         ksvd = trainKSVD(
             D0, {'KSVD': ksvd_def},
-            defs['TEST']['ConvBPDN'], slw, shw, imgw, maskw, crop_func
+            defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(ksvd)
 
