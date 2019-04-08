@@ -103,7 +103,8 @@ def save_image(img, path):
     img[img < 0] = 0
     img[img > 1] = 1
     img = (img * 255).astype(np.uint8)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if not cfg.TRAIN.DATASET.GRAY:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     cv2.imwrite(path, img)
 
 
@@ -169,7 +170,9 @@ def train_models(defs):
     if not cfg.TRAIN.DATASET.TIKHONOV:
         D0[..., 0] = 1. / D0[..., 0].size
     # get image and mask
-    img = create_image_blob(cfg.TRAIN.DATASET.IMAGE_NAMES[0])
+    img = create_image_blob(cfg.TRAIN.DATASET.IMAGE_NAMES[0],
+                            gray=cfg.TRAIN.DATASET.GRAY,
+                            dsize=cfg.TRAIN.DATASET.SIZE)
     mask = su.rndmask(img.shape, cfg.MASK.NOISE, img.dtype)
     if cfg.VERBOSE:
         logger.info('Corrupted image PSNR: {:.2f}'.format(
