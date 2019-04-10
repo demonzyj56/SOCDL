@@ -112,41 +112,53 @@ def train_online_solver(D0, train_defs, test_defs, slw, shw, img, mask, crop_fun
     # Note that img is 4-dim.
     key = list(train_defs.keys())[0]  # only one key is available
     solver = get_online_solvers(train_defs, D0, shw)[key]
+    img_name = cfg.TRAIN.DATASET.IMAGE_NAMES[0]
     path = os.path.join(cfg.OUTPUT_PATH, key)
     for e in range(cfg.TRAIN.EPOCHS):
         solver.solve(shw, mask)
-        imgr, psnr = reconstruct_ams(solver.getdict().squeeze(), test_defs,
-                                     slw, shw, img, mask, crop_func)
-        img_path = os.path.join(path, '{:d}_{:.2f}.png'.format(e, psnr))
         if cfg.SNAPSHOT:
             snapshot_solver_dict(solver, path, cur_cnt=e)
-            save_image(imgr, img_path)
-        if cfg.VERBOSE:
-            logger.info('PSNR for {} at iteration {} is {:.2f}'.format(
-                key, e, psnr
-            ))
+        # reconstruct image every 5 iterations
+        if (e + 1) % 5 == 0:
+            imgr, psnr = reconstruct_ams(solver.getdict().squeeze(), test_defs,
+                                         slw, shw, img, mask, crop_func)
+            img_path = os.path.join(
+                path, '{:s}_{:d}_{:.2f}.png'.format(img_name, e, psnr)
+            )
+            if cfg.SNAPSHOT:
+                save_image(imgr, img_path)
+            if cfg.VERBOSE:
+                logger.info('PSNR for {} at iteration {} is {:.2f}'.format(
+                    key, e, psnr
+                ))
     return {key: solver}
 
 def trainConvBPDNMaskDictLearn(D0, train_defs, test_defs, slw, shw, img, mask, crop_func):
     key = list(train_defs.keys())[0]
+    opts = train_defs[key]
+    img_name = cfg.TRAIN.DATASET.IMAGE_NAMES[0]
     path = os.path.join(cfg.OUTPUT_PATH, key)
     os.makedirs(path, exist_ok=True)
 
     def _callback(d):
         """Snapshot dictionaries for every iteration."""
-        imgr, psnr = reconstruct_ams(d.getdict().squeeze(), test_defs,
-                                     slw, shw, img, mask, crop_func)
-        img_path = os.path.join(path, '{:d}_{:.2f}.png'.format(d.j, psnr))
         if cfg.SNAPSHOT:
-            snapshot_solver_dict(d, path)
-            save_image(imgr, img_path)
-        if cfg.VERBOSE:
-            logger.info('PSNR for {} at iteration {} is {:.2f}'.format(
-                key, d.j, psnr
-            ))
+            snapshot_solver_dict(d, path, cur_cnt=d.j)
+        # reconstruct image every 5 iterations
+        if (d.j + 1) % 5 == 0:
+            imgr, psnr = reconstruct_ams(d.getdict().squeeze(), test_defs,
+                                         slw, shw, img, mask, crop_func)
+            img_path = os.path.join(
+                path, '{:s}_{:d}_{:.2f}.png'.format(img_name, d.j, psnr)
+            )
+            if cfg.SNAPSHOT:
+                save_image(imgr, img_path)
+            if cfg.VERBOSE:
+                logger.info('PSNR for {} at iteration {} is {:.2f}'.format(
+                    key, d.j, psnr
+                ))
         return 0
 
-    opts = train_defs['ConvBPDNMaskDictLearn']
     opts.update({'Callback': _callback, 'MaxMainIter': cfg.TRAIN.EPOCHS})
     mdopt = cbpdndlmd.ConvBPDNMaskDictLearn.Options(opts, dmethod='cns')
     solver = cbpdndlmd.ConvBPDNMaskDictLearn(D0, shw, cfg.LAMBDA, mask,
@@ -170,9 +182,17 @@ def train_models(defs):
     if not cfg.TRAIN.DATASET.TIKHONOV:
         D0[..., 0] = 1. / D0[..., 0].size
     # get image and mask
-    img = create_image_blob(cfg.TRAIN.DATASET.IMAGE_NAMES[0],
-                            gray=cfg.TRAIN.DATASET.GRAY,
-                            dsize=cfg.TRAIN.DATASET.SIZE)
+    img_name = cfg.TRAIN.DATASET.IMAGE_NAMES[0]
+    H, W = cfg.TRAIN.DATASET.SIZE
+    if H > 0 and W > 0:
+        img = create_image_blob(img_name,
+                                gray=cfg.TRAIN.DATASET.GRAY,
+                                dsize=cfg.TRAIN.DATASET.SIZE)
+    else:
+        img = create_image_blob(img_name, gray=cfg.TRAIN.DATASET.GRAY)
+        H, W = img.shape[:2]
+    img_name = '{:s}_{:d}x{:d}'.format(img_name, H, W)
+
     mask = su.rndmask(img.shape, cfg.MASK.NOISE, img.dtype)
     if cfg.VERBOSE:
         logger.info('Corrupted image PSNR: {:.2f}'.format(
@@ -181,7 +201,7 @@ def train_models(defs):
     if cfg.SNAPSHOT:
         save_image(img*mask, os.path.join(
             cfg.OUTPUT_PATH,
-            '{}_corrupted.png'.format(cfg.TRAIN.DATASET.IMAGE_NAMES[0])
+            '{}_corrupted_{}.png'.format(img_name, cfg.MASK.NOISE)
         ))
     slw, shw, maskw = decompose_image(img, mask)
     socdl_def = defs['TRAIN'].get('OnlineDictLearnSliceSurrogate', None)
@@ -189,27 +209,28 @@ def train_models(defs):
     cbpdndlmd_def = defs['TRAIN'].get('ConvBPDNMaskDictLearn', None)
     ksvd_def = defs['TRAIN'].get('KSVD', None)
     solvers = {}
+    # annotate with image name
     if socdl_def is not None:
         socdl = train_online_solver(
-            D0, {'OnlineDictLearnSliceSurrogate': socdl_def},
+            D0, {'OnlineDictLearnSliceSurrogate-{}'.format(img_name): socdl_def},
             defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(socdl)
     if ocdl_sgd_def is not None:
         ocdl_sgd = train_online_solver(
-            D0, {'OnlineDictLearnSGDMask': ocdl_sgd_def},
+            D0, {'OnlineDictLearnSGDMask-{}'.format(img_name): ocdl_sgd_def},
             defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(ocdl_sgd)
     if cbpdndlmd_def is not None:
         cbpdndlmd_dict = trainConvBPDNMaskDictLearn(
-            D0, {'ConvBPDNMaskDictLearn': cbpdndlmd_def},
+            D0, {'ConvBPDNMaskDictLearn-{}'.format(img_name): cbpdndlmd_def},
             defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(cbpdndlmd_dict)
     if ksvd_def is not None:
         ksvd = trainKSVD(
-            D0, {'KSVD': ksvd_def},
+            D0, {'KSVD-{}'.format(img_name): ksvd_def},
             defs['TEST']['ConvBPDN'], slw, shw, img, maskw, crop_func
         )
         solvers.update(ksvd)
