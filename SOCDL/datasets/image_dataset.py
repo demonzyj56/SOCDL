@@ -32,7 +32,15 @@ IMAGE_LIST = {
         'images/FCSC/Images/singles/test2/test2.jpg',
         'images/FCSC/Images/singles/test3/test3.jpg',
         'images/FCSC/Images/singles/test4/test.jpg',
-    ]
+    ],
+    'f16': 'images/classic/f16.tif',
+    'cat': 'images/ece533/cat.png',
+    'watch': 'images/ece533/watch.png',
+    'boy': 'images/ece533/boy.bmp',
+    'sails': 'images/ece533/sails.png',
+    'girl': 'images/ece533/girl.png',
+    'tulips': 'images/ece533/tulips.png',
+    'parrots': 'images/sporco_get_images/kodak/kodim23.png',
 }
 
 
