@@ -115,11 +115,11 @@ def train_online_solver(D0, train_defs, test_defs, slw, shw, img, mask, crop_fun
     img_name = cfg.TRAIN.DATASET.IMAGE_NAMES[0]
     path = os.path.join(cfg.OUTPUT_PATH, key)
     for e in range(cfg.TRAIN.EPOCHS):
-        solver.solve(shw, mask)
+        solver.solve(shw.copy(), mask.copy())
         if cfg.SNAPSHOT:
             snapshot_solver_dict(solver, path, cur_cnt=e)
-        # reconstruct image every 5 iterations
-        if (e + 1) % 5 == 0:
+        # reconstruct image every few iterations
+        if (e + 1) % 10 == 0:
             imgr, psnr = reconstruct_ams(solver.getdict().squeeze(), test_defs,
                                          slw, shw, img, mask, crop_func)
             img_path = os.path.join(
@@ -144,8 +144,8 @@ def trainConvBPDNMaskDictLearn(D0, train_defs, test_defs, slw, shw, img, mask, c
         """Snapshot dictionaries for every iteration."""
         if cfg.SNAPSHOT:
             snapshot_solver_dict(d, path, cur_cnt=d.j)
-        # reconstruct image every 5 iterations
-        if (d.j + 1) % 5 == 0:
+        # reconstruct image every few iterations
+        if (d.j + 1) % 10 == 0:
             imgr, psnr = reconstruct_ams(d.getdict().squeeze(), test_defs,
                                          slw, shw, img, mask, crop_func)
             img_path = os.path.join(
@@ -161,7 +161,7 @@ def trainConvBPDNMaskDictLearn(D0, train_defs, test_defs, slw, shw, img, mask, c
 
     opts.update({'Callback': _callback, 'MaxMainIter': cfg.TRAIN.EPOCHS})
     mdopt = cbpdndlmd.ConvBPDNMaskDictLearn.Options(opts, dmethod='cns')
-    solver = cbpdndlmd.ConvBPDNMaskDictLearn(D0, shw, cfg.LAMBDA, mask,
+    solver = cbpdndlmd.ConvBPDNMaskDictLearn(D0, shw.copy(), cfg.LAMBDA, mask.copy(),
                                              opt=mdopt, dmethod='cns')
     solver.solve()
     return {key: solver}
