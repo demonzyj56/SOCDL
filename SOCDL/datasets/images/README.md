@@ -25,3 +25,7 @@ The folder `classic` contains images from <http://www.petitcolas.net/watermarkin
 ## ece533
 
 The folder `ece533` contains images from [Public-Domain Test Images for Homework and Projects](http://homepages.cae.wisc.edu/~ece533/images/).
+
+## KSVD
+
+The folder `KSVD` contains images from <http://thoth.inrialpes.fr/people/mairal/resources/KSVD_package.tar.gz>.

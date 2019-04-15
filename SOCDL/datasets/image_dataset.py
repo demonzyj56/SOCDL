@@ -41,6 +41,13 @@ IMAGE_LIST = {
     'girl': 'images/ece533/girl.png',
     'tulips': 'images/ece533/tulips.png',
     'parrots': 'images/sporco_get_images/kodak/kodim23.png',
+    'castle': 'images/KSVD/castle.png',
+    'duck': 'images/KSVD/duck256.png',
+    'horses': 'images/KSVD/horses.png',
+    'kangaroo': 'images/KSVD/kangaroo.png',
+    'mushroom': 'images/KSVD/mushroom.png',
+    'train': 'images/KSVD/train.png',
+    'zurich': 'images/KSVD/zurich256.png',
 }
 
 
