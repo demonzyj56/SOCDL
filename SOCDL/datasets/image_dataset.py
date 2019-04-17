@@ -48,6 +48,7 @@ IMAGE_LIST = {
     'mushroom': 'images/KSVD/mushroom.png',
     'train': 'images/KSVD/train.png',
     'zurich': 'images/KSVD/zurich256.png',
+    'beacon': 'images/sporco_get_images/kodak/kodim19.png',
 }
 
 
